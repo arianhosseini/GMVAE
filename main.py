@@ -200,7 +200,7 @@ if __name__ == '__main__':
     samples = sample(gm_vae)
     #with open(hyper['exp_folder']+'/samples.pkl','rb') as f:
     #   samples = pickle.load(f)
-    plot2D('samples_efore',samples, gm_vae)
+    plot2D('samples_before',samples, gm_vae)
     train(gm_vae)
 
 
