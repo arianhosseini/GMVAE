@@ -60,7 +60,7 @@ def getHyperSpiral():
     hyper['L_w'] =  10 # Number of w samples for each examples of a minibatch.
     hyper['L_x'] = 10 # Number of x samples for each examples of a minibatch.
 
-    hyper['exp_folder'] = 'exp_dev'
+    hyper['exp_folder'] = 'exp_dev0'
 
     hyper['normalize_data'] = False
     hyper['treshold_z_prior'] = 1.5 # TODO: What's the value they're using in GMVAE??
@@ -69,7 +69,7 @@ def getHyperSpiral():
     # Saving hyper in exp_folder
     if not os.path.exists(hyper['exp_folder']):
         os.makedirs(hyper['exp_folder'])
-        
+
     with open(hyper['exp_folder']+'/hyper.pkl','wb') as f:
         pickle.dump(hyper,f)
 
