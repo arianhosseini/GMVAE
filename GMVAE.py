@@ -164,29 +164,29 @@ class GMVAE(object):
     def buildReconstructionTerm(self):
         """Reconstruction term (see GMVAE article's terminology)"""
 
-        # shape is (batch size,)
-        self.reconst = T.mean(self.log_pygx, axis=1)
+        # shape is (1,)
+        self.reconst = T.mean(self.log_pygx)
 
     def buildConditionalPriorTerm(self):
         """Conditional prior term (see GMVAE article's terminology)
         There's an error in the article regarding the order of integration..."""
 
-        # shape is (batch size,)
-        self.conditional_prior = - T.mean(T.sum(T.exp(self.log_pzgxw)*(self.log_qxgy.dimshuffle(0,'x',1,'x') - self.log_pxgzw), axis=3), axis=[1,2])
+        # shape is (1,)
+        self.conditional_prior = - T.mean(T.sum(T.exp(self.log_pzgxw)*(self.log_qxgy.dimshuffle(0,'x',1,'x') - self.log_pxgzw), axis=3))
 
     def buildWPriorTerm(self):
         """w-prior term (see GMVAE article's terminology)"""
 
-        # self.w_prior.shape == (minibatch size,)
-        self.w_prior = 0.5*T.sum(1 + T.log(self.qwgy_var) - self.qwgy_mu**2-self.qwgy_var, axis=1)
+        # self.w_prior.shape == (1,)
+        self.w_prior = T.mean(0.5*T.sum(1 + T.log(self.qwgy_var) - self.qwgy_mu**2-self.qwgy_var, axis=1))
 
         self.w_prior_modif = - T.maximum(self.hyper['treshold_w_prior'], -self.w_prior)
 
     def buildZPriorTerm(self):
         """z-prior term (see GMVAE article's terminology)"""
 
-        # shape is (batch size,)
-        self.z_prior = - T.mean(T.sum(T.exp(self.log_pzgxw)*(self.log_pzgxw + T.log(self.hyper['num_clust'])), axis=3), axis=[1,2])
+        # shape is (1,)
+        self.z_prior = - T.mean(T.sum(T.exp(self.log_pzgxw)*(self.log_pzgxw + T.log(self.hyper['num_clust'])), axis=3))
 
         self.z_prior_modif = - T.maximum(self.hyper['treshold_z_prior'], - self.z_prior)
 
@@ -195,9 +195,9 @@ class GMVAE(object):
         """Builds the approximate objective corresponding to L_elbo in GMVAE article"""
 
         # self.z_prior might be the modified version
-        self.L_elbo = T.mean(self.reconst + self.conditional_prior + self.w_prior + self.z_prior)
+        self.L_elbo = self.reconst + self.conditional_prior + self.w_prior + self.z_prior
 
-        self.L_elbo_modif = T.mean(self.reconst + self.conditional_prior + self.w_prior_modif + self.z_prior_modif)
+        self.L_elbo_modif = self.reconst + self.conditional_prior + self.w_prior_modif + self.z_prior_modif
 
         #---Getting model parameter---#
         cg = ComputationGraph(self.L_elbo)
@@ -247,13 +247,13 @@ class GMVAE(object):
 
         # Metric computers (Have to be called in this order: self.computeMetricsTrain then self.computeMetricsValid)
         self.computeMetricsTrain = theano.function(inputs=[],
-                                      outputs=[self.L_elbo, self.L_elbo_modif, T.mean(self.z_prior), T.mean(self.z_prior_modif)],
+                                      outputs=[self.L_elbo, self.L_elbo_modif, self.z_prior, self.z_prior_modif],
                                       givens={self.y: train_data},
                                       no_default_updates=True)#, #To be sure that the samples are the same when calling self.computeMetricsValid and self.computeMetricsTrain
                                       #mode=NanGuardMode(nan_is_error=True, inf_is_error=True, big_is_error=False))
 
         self.computeMetricsValid = theano.function(inputs=[],
-                                      outputs=[self.L_elbo, self.L_elbo_modif, T.mean(self.z_prior), T.mean(self.z_prior_modif)],
+                                      outputs=[self.L_elbo, self.L_elbo_modif, self.z_prior, self.z_prior_modif],
                                       givens={self.y: valid_data})#,
                                       #mode=NanGuardMode(nan_is_error=True, inf_is_error=True, big_is_error=False))
 
