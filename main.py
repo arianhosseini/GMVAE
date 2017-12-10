@@ -15,7 +15,7 @@ from theano.sandbox.rng_mrg import MRG_RandomStreams as RandomStreams
 
 from data import loadSpiralData
 from GMVAE import GMVAE
-from hyper import getHyperSpiral, loadHyper
+from hyper import getHyperSpiral, getHyperMnist, loadHyper
 
 def plot2D(name, data, model, clustered=True):
     """Expects data to be a dictionnary of samples, key = 0,1,2, ..., num_clust"""
@@ -185,14 +185,24 @@ def train(model):
 
 
 if __name__ == '__main__':
-    hyper = getHyperSpiral()
+    if sys.argv[1] == '-spiral':
+        hyper = getHyperSpiral()
+    elif sys.argv[1] == '-mnist':
+        hyper = getHyperMnist()
+    else:
+        print('Usage: python main.py {-spiral or -mnist}')
+        sys.exit()
+        
     print "Hyper Params: "
     print hyper
 
     gm_vae = GMVAE(hyper)
     gm_vae.buildGraph()
 
-    train_data, valid_data = loadSpiralData(hyper)
+    if sys.argv[1] == '-spiral':
+        train_data, valid_data = loadSpiralData(hyper)
+    elif sys.argv[1] == '-mnist':
+        train_data, valid_data = loadMnistData(hyper)
     plot2D('train data', train_data.get_value(), gm_vae, clustered=False)
 
     gm_vae.compile(train_data, valid_data)
@@ -200,7 +210,7 @@ if __name__ == '__main__':
     samples = sample(gm_vae)
     #with open(hyper['exp_folder']+'/samples.pkl','rb') as f:
     #   samples = pickle.load(f)
-    plot2D('samples_efore',samples, gm_vae)
+    plot2D('samples_before',samples, gm_vae)
     train(gm_vae)
 
 
