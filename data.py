@@ -1,5 +1,6 @@
 
 import numpy as np
+import struct
 from scipy import stats
 import theano
 from theano import tensor as T
@@ -30,5 +31,21 @@ def loadSpiralData(hyper):
     data_train = theano.shared(data_train.astype(config.floatX), borrow=True)
     data_valid = theano.shared(data_valid.astype(config.floatX), borrow=True)
     return data_train, data_valid
-def loadMnist(hyper):
-    raise NotImplementedError("")
+def loadMnistData(hyper):
+    print 'Loading data...'
+    with open('data/train-images-idx3-ubyte', 'rb') as f:
+        zero, data_type, dims = struct.unpack('>HBB', f.read(4))
+        shape = tuple(struct.unpack('>I', f.read(4))[0] for d in range(dims))
+        data_train = np.fromstring(f.read(), dtype=np.uint8).reshape(shape)
+    with open('data/train-images-idx3-ubyte', 'rb') as f:
+        zero, data_type, dims = struct.unpack('>HBB', f.read(4))
+        shape = tuple(struct.unpack('>I', f.read(4))[0] for d in range(dims))
+        data_valid = np.fromstring(f.read(), dtype=np.uint8).reshape(shape)
+
+    if hyper['normalize_data']:
+        data_train = stats.mstats.zscore(data_train, axis = 0)
+        data_valid = stats.mstats.zscore(data_valid, axis = 0)
+
+    data_train = theano.shared(data_train.astype(config.floatX), borrow=True)
+    data_valid = theano.shared(data_valid.astype(config.floatX), borrow=True)
+    return data_train, data_valid
