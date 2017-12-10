@@ -125,6 +125,13 @@ def getHyperMnist():
     hyper['treshold_w_prior'] = 1
     hyper['w_reduc'] = 1
 
+    # Saving hyper in exp_folder
+    if not os.path.exists(hyper['exp_folder']):
+        os.makedirs(hyper['exp_folder'])
+        
+    with open(hyper['exp_folder']+'/hyper.pkl','wb') as f:
+        pickle.dump(hyper,f)
+
     return hyper
 
 

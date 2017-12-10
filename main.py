@@ -1,6 +1,5 @@
 import gzip
 import pickle
-
 import numpy as np
 from scipy import stats
 import matplotlib
@@ -8,12 +7,14 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import theano
+import sys
+
 from theano import tensor as T
 from theano import config
 from theano.compile.nanguardmode import NanGuardMode
 from theano.sandbox.rng_mrg import MRG_RandomStreams as RandomStreams
 
-from data import loadSpiralData
+from data import loadSpiralData, loadMnistData
 from GMVAE import GMVAE
 from hyper import getHyperSpiral, getHyperMnist, loadHyper
 
@@ -38,6 +39,19 @@ def plot2D(name, data, model, clustered=True):
     plt.figure(1)
     plt.hist2d(all_y_samples[:,0], all_y_samples[:,1], bins=200)
     plt.savefig(model.hyper['exp_folder']+'/'+name+'hist.png')
+    plt.clf()
+
+def plotMnist(name, data, model):
+    i = 0
+    f, _plots = plt.subplots(2, 9)
+    for row in _plots:
+        for column in row:
+            column.imshow(data[i], cmap='gray')
+            column.set_xlim([0,28])
+            column.set_ylim([0,28])
+            column.axis('off')
+            i += 1
+    plt.savefig(model.hyper['exp_folder']+'/'+name+'.png')
     plt.clf()
 
 def plot_learning_curves(name, model):
@@ -201,9 +215,10 @@ if __name__ == '__main__':
 
     if sys.argv[1] == '-spiral':
         train_data, valid_data = loadSpiralData(hyper)
+        plot2D('train_data', train_data.get_value(), gm_vae, clustered=False)
     elif sys.argv[1] == '-mnist':
         train_data, valid_data = loadMnistData(hyper)
-    plot2D('train data', train_data.get_value(), gm_vae, clustered=False)
+        plotMnist('train_data', train_data.get_value(), gm_vae)
 
     gm_vae.compile(train_data, valid_data)
 
