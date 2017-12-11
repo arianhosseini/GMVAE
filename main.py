@@ -203,7 +203,6 @@ def train(model, writer):
 
 if __name__ == '__main__':
 
-
     parser = argparse.ArgumentParser(description='Gaussian Mixture VAE')
     parser.add_argument('--lr', type=float, default=0.001, help='learning rate')
     parser.add_argument('--batch_size', type=int, default=100, help='batch size')

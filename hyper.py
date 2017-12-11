@@ -9,12 +9,8 @@ from blocks.initialization import Uniform, IsotropicGaussian
 def getHyperBasic():
 
     hyper = {}
-
-
-
-
-
     return hyper
+
 def update_hyper_by_args(hyper, args):
     for name in sorted(vars(args)):
         hyper[name] = getattr(args, name)
@@ -52,7 +48,8 @@ def getHyperSpiral(args):
     hyper['q_activs'] = [Rectifier(), Rectifier(), None]
     hyper['q_dims'] = [hyper['y_dim'], 120, 120, 2*hyper['x_dim']+2*hyper['w_dim']]
     #width_unif= 2*np.sqrt(6./(hyper['dec_dims'][0] + hyper['dec_dims'][-1]))
-    hyper['q_W_init'] = IsotropicGaussian(std=np.sqrt(0.01), mean=0)
+    hyper['q_W_init'] = Uniform(mean=0, width=.8)
+#IsotropicGaussian(std=np.sqrt(0.01), mean=0)
 
     #---Optimization related---#
     hyper['algo'] = 'adam(self.params, self.grads, self.hyper[\'lr\'])'

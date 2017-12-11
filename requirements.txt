@@ -1,0 +1,3 @@
+GMVAE
+blocks==0.2.0
+tensorboardX
