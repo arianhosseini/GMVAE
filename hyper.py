@@ -58,7 +58,10 @@ def getHyper(mode):
     hyper['valid_freq'] = 10 # Will check the valid "error" every ___ epochs
     hyper['L_w'] =  1 # Number of w samples for each examples of a minibatch.
     hyper['L_x'] = 1 # Number of x samples for each examples of a minibatch.
-    hyper['exp_folder'] = 'exp_mnist_dev5_normalize'
+    if mode == 'spiral':
+        hyper['exp_folder'] = 'exp_spiral_dev5_normalize'
+    elif mode == 'mnist':
+        hyper['exp_folder'] = 'exp_mnist_dev5_normalize'
     hyper['normalize_data'] = True
     hyper['treshold_z_prior'] = 1.6 # TODO: What's the value they're using in GMVAE??
     hyper['treshold_w_prior'] = 1
