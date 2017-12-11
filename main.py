@@ -41,13 +41,16 @@ def plot2D(name, data, model, clustered=True):
     plt.savefig(model.hyper['exp_folder']+'/'+name+'hist.png')
     plt.clf()
 
-def plotMnist(name, data, model):
-    data = data.reshape((data.shape[0], data.shape[1] / 2, data.shape[1] / 2))
+def plotMnist(name, data, model, clustered=True):
+    if clustered:
+        data = data.values()
+
     i = 0
     f, _plots = plt.subplots(2, 9)
     for row in _plots:
         for column in row:
-            column.imshow(data[i], cmap='gray')
+            column.imshow(data[i].reshape((28, 28)), cmap='gray')
+
             column.set_xlim([0,28])
             column.set_ylim([0,28])
             column.axis('off')
@@ -220,7 +223,7 @@ if __name__ == '__main__':
         plot2D('train_data', train_data.get_value(), gm_vae, clustered=False)
     elif hyper['mode'] == 'mnist':
         train_data, valid_data = loadMnistData(hyper)
-        plotMnist('train_data', train_data.get_value(), gm_vae)
+        plotMnist('train_data', train_data.get_value(), gm_vae, clustered=False)
 
     gm_vae.compile(train_data, valid_data)
 
@@ -236,7 +239,7 @@ if __name__ == '__main__':
     train(gm_vae)
 
     gm_vae.setBestParams()
-    samples = sample(gm_vae)
+    samples = sample(gm_vae, 18)
     if hyper['mode'] == 'spiral':
         plot2D('samples_after_training',samples, gm_vae)
     elif hyper['mode'] == 'mnist': 
