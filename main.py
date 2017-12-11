@@ -49,7 +49,10 @@ def plotMnist(name, data, model, clustered=True):
     f, _plots = plt.subplots(2, 9)
     for row in _plots:
         for column in row:
-            column.imshow(data[i].reshape((28, 28)), cmap='gray')
+            if clustered:
+                column.imshow(data[i % 10][0].reshape((28, 28)), cmap='gray')
+            else:
+                column.imshow(data[i].reshape((28,28)), cmap='gray')
 
             column.set_xlim([0,28])
             column.set_ylim([0,28])
@@ -122,8 +125,8 @@ def sample(model, n=500):
 
             y_samples[cluster] = np.array(y_samples[cluster])
         elif model.hyper['mode'] == 'mnist':
-            pygx_mu = model.computePygxParams(x_samples_cluster)
-            y_samples[cluster] += [pygx_mu]
+            pygx_mu = model.computePygxParams(x_samples_cluster)[:,0,:]
+            y_samples[cluster] = pygx_mu
 
     with open(model.hyper['exp_folder']+'/samples.pkl','wb') as f:
         pickle.dump(y_samples,f)

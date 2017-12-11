@@ -29,7 +29,10 @@ def getHyper(mode):
     hyper['pygx_dims'] = [hyper['x_dim'], 120, 120, 2*hyper['y_dim']]
     #width_unif = 2*np.sqrt(6./(hyper['enc_dims'][0] + hyper['enc_dims'][-1]))
     #hyper['pygx_W_init'] = IsotropicGaussian(std=2*np.sqrt(0.01), mean=0)
-    hyper['pygx_W_init'] = Uniform(mean=0, width=.8)
+    if hyper['mode'] == 'spiral':
+        hyper['pygx_W_init'] = Uniform(mean=0, width=.8)
+    elif hyper['mode'] == 'mnist':
+        hyper['pygx_W_init'] = Uniform(mean=0, width=.1)
 
     #---p(x|z=j,w) for all j---#
     hyper['pxgzw_activs'] = [None]*hyper['num_clust']
@@ -38,7 +41,10 @@ def getHyper(mode):
         hyper['pxgzw_activs'][j] = [Tanh(), None]
         hyper['pxgzw_dims'][j] = [hyper['w_dim'], 120, 2*hyper['x_dim']]
     #hyper['pxgzw_W_init'] = IsotropicGaussian(std=2*np.sqrt(0.01), mean=0)
-    hyper['pxgzw_W_init'] = Uniform(mean=0, width=.8)
+    if hyper['mode'] == 'spiral':
+        hyper['pxgzw_W_init'] = Uniform(mean=0, width=.8)
+    elif hyper['mode'] == 'mnist':
+        hyper['pxgzw_W_init'] = Uniform(mean=0, width=.1)
 
     #---Q related networks architecture---#
     #---q(x|y) and q(w|y)---#
@@ -47,7 +53,10 @@ def getHyper(mode):
     hyper['q_dims'] = [hyper['y_dim'], 120, 120, 2*hyper['x_dim']+2*hyper['w_dim']]
     #width_unif= 2*np.sqrt(6./(hyper['dec_dims'][0] + hyper['dec_dims'][-1]))
     #hyper['q_W_init'] = IsotropicGaussian(std=2*np.sqrt(0.01), mean=0)
-    hyper['q_W_init'] = Uniform(mean=0, width=.8)
+    if hyper['mode'] == 'spiral':
+        hyper['q_W_init'] = Uniform(mean=0, width=.8)
+    elif hyper['mode'] == 'mnist':
+        hyper['q_W_init'] = Uniform(mean=0, width=.1)
 
     #---Optimization related---#
     hyper['algo'] = 'adam(self.params, self.grads, self.hyper[\'lr\'])'
@@ -60,9 +69,11 @@ def getHyper(mode):
     hyper['L_x'] = 1 # Number of x samples for each examples of a minibatch.
     if mode == 'spiral':
         hyper['exp_folder'] = 'exp_spiral_dev5_normalize'
+        hyper['normalize_data'] = True
     elif mode == 'mnist':
         hyper['exp_folder'] = 'exp_mnist_dev5_normalize'
-    hyper['normalize_data'] = True
+        hyper['normalize_data'] = False
+    
     hyper['treshold_z_prior'] = 1.6 # TODO: What's the value they're using in GMVAE??
     hyper['treshold_w_prior'] = 1
     hyper['w_reduc'] = 1

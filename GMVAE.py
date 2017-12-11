@@ -101,12 +101,12 @@ class GMVAE(object):
         if self.hyper['mode'] == 'spiral':
             # self.pygx_mu.shape == (minibatch size, L_x , num of dimension of y)
             self.pygx_mu = pygx_params[:,:,:self.hyper['y_dim']]
+            # self.pygx_var.shape == (minibatch size, L_x, num of dimension of y)
+            self.pygx_var = T.exp(pygx_params[:,:,self.hyper['y_dim']:])
         elif self.hyper['mode'] == 'mnist':
             self.pygx_mu = T.nnet.nnet.sigmoid(pygx_params[:,:,:self.hyper['y_dim']])
-
-        # self.pygx_var.shape == (minibatch size, L_x, num of dimension of y)
-        self.pygx_var = T.exp( pygx_params[:,:,self.hyper['y_dim']:] )
-
+            #self.pygx_var = T.ones(pygx_params[:,:,self.hyper['y_dim']:].shape, dtype='float')
+            self.pygx_var = T.exp(pygx_params[:,:,self.hyper['y_dim']:])
 
         #---Building graph for the density of p(y|x)---#
         little_num = 10**(-32)
@@ -270,7 +270,7 @@ class GMVAE(object):
                                         outputs=[self.pygx_mu,self.pygx_var])#,
                                         #mode=NanGuardMode(nan_is_error=True, inf_is_error=True, big_is_error=False))
         elif self.hyper['mode'] == 'mnist':
-            self.computePygxParams = theano.function(inputs=[self.x], outputs=[self.pygx_mu])
+            self.computePygxParams = theano.function(inputs=[self.x], outputs=self.pygx_mu)
 
     def saveParams(self):
 

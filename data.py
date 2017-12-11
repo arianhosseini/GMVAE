@@ -43,8 +43,12 @@ def loadMnistData(hyper):
         data_valid = np.fromstring(f.read(), dtype=np.uint8).reshape(shape)
 
     if hyper['normalize_data']:
+        print('Pas supposer')
         data_train = stats.mstats.zscore(data_train, axis = 0)
         data_valid = stats.mstats.zscore(data_valid, axis = 0)
+    else:
+        data_train = data_train/255.
+        data_valid = data_valid/255.
 
     data_train = data_train.reshape((data_train.shape[0], data_train.shape[1] * data_train.shape[2]))
     data_valid = data_valid.reshape((data_valid.shape[0], data_valid.shape[1] * data_valid.shape[2]))
