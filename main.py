@@ -42,6 +42,7 @@ def plot2D(name, data, model, clustered=True):
     plt.clf()
 
 def plotMnist(name, data, model):
+    data = data.reshape((data.shape[0], data.shape[1] / 2, data.shape[1] / 2))
     i = 0
     f, _plots = plt.subplots(2, 9)
     for row in _plots:
