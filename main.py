@@ -16,7 +16,7 @@ from theano.sandbox.rng_mrg import MRG_RandomStreams as RandomStreams
 
 from data import loadSpiralData, loadMnistData
 from GMVAE import GMVAE
-from hyper import getHyperSpiral, getHyperMnist, loadHyper
+from hyper import getHyper, loadHyper
 
 def plot2D(name, data, model, clustered=True):
     """Expects data to be a dictionnary of samples, key = 0,1,2, ..., num_clust"""
@@ -102,7 +102,6 @@ def sample(model, n=500):
         sum_ += count_dict[cluster]
 
         for i in range(pxgzw_mus.shape[0]):
-
             x_samples[cluster] += [np.random.multivariate_normal(pxgzw_mus[i,0,:], pxgzw_vars[i,0,:]*np.eye(model.hyper['x_dim'])).astype(config.floatX)]
 
         # shape is (number of times z gave 'cluster',1, x_dim)
@@ -110,20 +109,22 @@ def sample(model, n=500):
         print x_samples_cluster.shape
         x_samples_cluster = x_samples_cluster.reshape(x_samples_cluster.shape[0],1,x_samples_cluster.shape[1])
 
-        # shapes are (number of times z gave 'cluster',1, y_dim)
-        pygx_mu, pygx_var = model.computePygxParams(x_samples_cluster)
+        if model.hyper['mode'] == 'spiral':
+            # shapes are (number of times z gave 'cluster',1, y_dim)
+            pygx_mu, pygx_var = model.computePygxParams(x_samples_cluster)
 
-        for i in range(pxgzw_mus.shape[0]):
-            y_samples[cluster] += [np.random.multivariate_normal(pygx_mu[i,0,:], pygx_var[i,0,:]*np.eye(model.hyper['y_dim'])).astype(config.floatX)]
+            for i in range(pxgzw_mus.shape[0]):
+                y_samples[cluster] += [np.random.multivariate_normal(pygx_mu[i,0,:], pygx_var[i,0,:]*np.eye(model.hyper['y_dim'])).astype(config.floatX)]
 
-        y_samples[cluster] = np.array(y_samples[cluster])
+            y_samples[cluster] = np.array(y_samples[cluster])
+        elif model.hyper['mode'] == 'mnist':
+            pygx_mu = model.computePygxParams(x_samples_cluster)
+            y_samples[cluster] += [pygx_mu]
 
     with open(model.hyper['exp_folder']+'/samples.pkl','wb') as f:
-
         pickle.dump(y_samples,f)
 
     return y_samples
-
 
 
 def train(model):
@@ -200,23 +201,23 @@ def train(model):
 
 if __name__ == '__main__':
     if sys.argv[1] == '-spiral':
-        hyper = getHyperSpiral()
+        hyper = getHyper('spiral')
     elif sys.argv[1] == '-mnist':
-        hyper = getHyperMnist()
+        hyper = getHyper('mnist')
     else:
         print('Usage: python main.py {-spiral or -mnist}')
         sys.exit()
-        
+
     print "Hyper Params: "
     print hyper
 
     gm_vae = GMVAE(hyper)
     gm_vae.buildGraph()
 
-    if sys.argv[1] == '-spiral':
+    if hyper['mode'] == 'spiral':
         train_data, valid_data = loadSpiralData(hyper)
         plot2D('train_data', train_data.get_value(), gm_vae, clustered=False)
-    elif sys.argv[1] == '-mnist':
+    elif hyper['mode'] == 'mnist':
         train_data, valid_data = loadMnistData(hyper)
         plotMnist('train_data', train_data.get_value(), gm_vae)
 
@@ -225,12 +226,19 @@ if __name__ == '__main__':
     samples = sample(gm_vae)
     #with open(hyper['exp_folder']+'/samples.pkl','rb') as f:
     #   samples = pickle.load(f)
-    plot2D('samples_before',samples, gm_vae)
-    train(gm_vae)
 
+    if hyper['mode'] == 'spiral':
+        plot2D('samples_before',samples, gm_vae)
+    elif hyper['mode'] == 'mnist':
+        plotMnist('samples_before',samples, gm_vae)
+
+    train(gm_vae)
 
     gm_vae.setBestParams()
     samples = sample(gm_vae)
-    plot2D('samples_after_training',samples, gm_vae)
+    if hyper['mode'] == 'spiral':
+        plot2D('samples_after_training',samples, gm_vae)
+    elif hyper['mode'] == 'mnist': 
+        plotMnist('samples_after_training',samples, gm_vae)
 
     plot_learning_curves('learn_curves', gm_vae)
