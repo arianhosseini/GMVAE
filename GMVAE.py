@@ -98,8 +98,11 @@ class GMVAE(object):
         pygx_params = pygx_params.reshape((self.x.shape[0],self.x.shape[1],2*self.hyper['y_dim']))
         pygx_params_mlp.initialize()
 
-        # self.pygx_mu.shape == (minibatch size, L_x , num of dimension of y)
-        self.pygx_mu = pygx_params[:,:,:self.hyper['y_dim']]
+        if self.hyper['mode'] == 'spiral':
+            # self.pygx_mu.shape == (minibatch size, L_x , num of dimension of y)
+            self.pygx_mu = pygx_params[:,:,:self.hyper['y_dim']]
+        elif self.hyper['mode'] == 'mnist':
+            self.pygx_mu = T.nnet.nnet.sigmoid(pygx_params[:,:,:self.hyper['y_dim']])
 
         # self.pygx_var.shape == (minibatch size, L_x, num of dimension of y)
         self.pygx_var = T.exp( pygx_params[:,:,self.hyper['y_dim']:] )
@@ -262,9 +265,12 @@ class GMVAE(object):
                                       outputs=[self.pxgzw_mus[:,:,z_index,:],self.pxgzw_vars[:,:,z_index,:]])#,
                                       #mode=NanGuardMode(nan_is_error=True, inf_is_error=True, big_is_error=False))
 
-        self.computePygxParams = theano.function(inputs=[self.x],
-                                      outputs=[self.pygx_mu,self.pygx_var])#,
-                                      #mode=NanGuardMode(nan_is_error=True, inf_is_error=True, big_is_error=False))
+        if self.hyper['mode'] == 'spiral':
+            self.computePygxParams = theano.function(inputs=[self.x], 
+                                        outputs=[self.pygx_mu,self.pygx_var])#,
+                                        #mode=NanGuardMode(nan_is_error=True, inf_is_error=True, big_is_error=False))
+        elif self.hyper['mode'] == 'mnist':
+            self.computePygxParams = theano.function(inputs=[self.x], outputs=[self.pygx_mu])
 
     def saveParams(self):
 
