@@ -81,7 +81,7 @@ def getHyper(mode):
     # Saving hyper in exp_folder
     if not os.path.exists(hyper['exp_folder']):
         os.makedirs(hyper['exp_folder'])
-        
+
     with open(hyper['exp_folder']+'/hyper.pkl','wb') as f:
         pickle.dump(hyper,f)
 
