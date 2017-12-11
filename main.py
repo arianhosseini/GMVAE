@@ -242,10 +242,11 @@ if __name__ == '__main__':
     train(gm_vae)
 
     gm_vae.setBestParams()
-    samples = sample(gm_vae, 18)
     if hyper['mode'] == 'spiral':
+        samples = sample(gm_vae)
         plot2D('samples_after_training',samples, gm_vae)
-    elif hyper['mode'] == 'mnist': 
+    elif hyper['mode'] == 'mnist':
+        samples = sample(gm_vae)
         plotMnist('samples_after_training',samples, gm_vae)
 
     plot_learning_curves('learn_curves', gm_vae)

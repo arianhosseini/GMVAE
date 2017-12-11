@@ -105,19 +105,31 @@ class GMVAE(object):
             self.pygx_var = T.exp(pygx_params[:,:,self.hyper['y_dim']:])
         elif self.hyper['mode'] == 'mnist':
             self.pygx_mu = T.nnet.nnet.sigmoid(pygx_params[:,:,:self.hyper['y_dim']])
-            #self.pygx_var = T.ones(pygx_params[:,:,self.hyper['y_dim']:].shape, dtype='float')
+            #self.pygx_var = 0.1 * T.ones(pygx_params[:,:,self.hyper['y_dim']:].shape, dtype='float')
             self.pygx_var = T.exp(pygx_params[:,:,self.hyper['y_dim']:])
 
         #---Building graph for the density of p(y|x)---#
-        little_num = 10**(-32)
-        inside_exp = -T.sum((self.y.dimshuffle(0,'x',1) - self.pygx_mu)**2/(2*self.pygx_var), axis=2)
-        norm_cst =  (2*np.pi)**(-self.hyper['y_dim']/2.)*T.exp(T.sum(T.log(self.pygx_var), axis=2))**(-1/2.)
+        #little_num = 10**(-32)
+        #inside_exp = -T.sum((self.y.dimshuffle(0,'x',1) - self.pygx_mu)**2/(2*self.pygx_var), axis=2)
+        #norm_cst =  (2*np.pi)**(-self.hyper['y_dim']/2.)*T.exp(T.sum(T.log(self.pygx_var), axis=2))**(-1/2.)
+        if self.hyper['mode'] == 'spiral':
+            little_num = 10**(-32)
+            inside_exp = -T.sum((self.y.dimshuffle(0,'x',1) - self.pygx_mu)**2/(2*self.pygx_var), axis=2)
+            norm_cst =  (2*np.pi)**(-self.hyper['y_dim']/2.)*T.exp(T.sum(T.log(self.pygx_var), axis=2))**(-1/2.)
+                                                            
+            # shape == (minibatch size, # of x samples)
+            pygx = norm_cst*T.exp(inside_exp)
+
+            # shape == (minibatch size, # of x samples)
+            self.log_pygx = T.log(pygx + little_num)
+        elif self.hyper['mode'] == 'mnist':
+            self.log_pygx = T.sum(self.y.dimshuffle(0, 'x', 1) * T.log(self.pygx_mu) + (1 - self.y.dimshuffle(0, 'x', 1)) * T.log(1 - self.pygx_mu), axis=2)
 
         # shape == (minibatch size, # of x samples)
-        pygx = norm_cst*T.exp(inside_exp)
+        #pygx = norm_cst*T.exp(inside_exp)
 
         # shape == (minibatch size, # of x samples)
-        self.log_pygx = T.log(pygx + little_num)
+        #self.log_pygx = T.log(pygx + little_num)
 
         #---Building NN for p(x|z=j,w) for all j---#
         pxgzw_mus = [None]*self.hyper['num_clust']
