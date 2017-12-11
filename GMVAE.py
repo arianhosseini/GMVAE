@@ -180,7 +180,7 @@ class GMVAE(object):
         # self.w_prior.shape == (1,)
         self.w_prior = T.mean(0.5*T.sum(1 + T.log(self.qwgy_var) - self.qwgy_mu**2-self.qwgy_var, axis=1))
 
-        self.w_prior_modif = - T.maximum(self.hyper['treshold_w_prior'], -self.w_prior)
+        self.w_prior_modif = - T.maximum(self.hyper['threshold_w_prior'], -self.w_prior)
 
     def buildZPriorTerm(self):
         """z-prior term (see GMVAE article's terminology)"""
@@ -188,7 +188,7 @@ class GMVAE(object):
         # shape is (1,)
         self.z_prior = - T.mean(T.sum(T.exp(self.log_pzgxw)*(self.log_pzgxw + T.log(self.hyper['num_clust'])), axis=3))
 
-        self.z_prior_modif = - T.maximum(self.hyper['treshold_z_prior'], - self.z_prior)
+        self.z_prior_modif = - T.maximum(self.hyper['threshold_z_prior'], - self.z_prior)
 
 
     def buildObjective(self):
@@ -236,7 +236,7 @@ class GMVAE(object):
         bs = self.hyper['batch_size']
 
         updates = eval(self.hyper['algo'])
-        #TODO fix this 
+        #TODO fix this later
         self.train_data = train_data
         self.valid_data = valid_data
         self.trainModel = theano.function(inputs=[i],

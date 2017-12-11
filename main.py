@@ -1,8 +1,9 @@
 import gzip
 import pickle
+import argparse
 
 import numpy as np
-from scipy import stats
+from scipy import stats, misc
 import matplotlib
 # To avoid displaying the figures
 matplotlib.use('Agg')
@@ -12,12 +13,13 @@ from theano import tensor as T
 from theano import config
 from theano.compile.nanguardmode import NanGuardMode
 from theano.sandbox.rng_mrg import MRG_RandomStreams as RandomStreams
+from tensorboardX import SummaryWriter
 
 from data import loadSpiralData
 from GMVAE import GMVAE
 from hyper import getHyperSpiral, loadHyper
 
-def plot2D(name, data, model, clustered=True):
+def plot2D(name, data, model, writer, clustered=True):
     """Expects data to be a dictionnary of samples, key = 0,1,2, ..., num_clust"""
 
     plt.figure(1)
@@ -28,6 +30,8 @@ def plot2D(name, data, model, clustered=True):
         plt.scatter(data[:,0],data[:,1])
 
     plt.savefig(model.hyper['exp_folder']+'/'+name+'.png')
+    image = misc.imread(model.hyper['exp_folder']+'/'+name+'.png')
+    writer.add_image(name, image, 0)
     plt.clf()
 
     if clustered:
@@ -38,9 +42,11 @@ def plot2D(name, data, model, clustered=True):
     plt.figure(1)
     plt.hist2d(all_y_samples[:,0], all_y_samples[:,1], bins=200)
     plt.savefig(model.hyper['exp_folder']+'/'+name+'hist.png')
+    image = misc.imread(model.hyper['exp_folder']+'/'+name+'hist.png')
+    writer.add_image(name+'_hist', image, 0)
     plt.clf()
 
-def plot_learning_curves(name, model):
+def plot_learning_curves(name, model, writer):
 
     #[i,L_elbo_train, L_elbo_valid, z_prior_train, z_prior_valid]
 
@@ -52,6 +58,8 @@ def plot_learning_curves(name, model):
     plt.legend(handles=[train, valid])
 
     plt.savefig(model.hyper['exp_folder']+'/curves1.png')
+    image = misc.imread(model.hyper['exp_folder']+'/curves1.png')
+    writer.add_image('curves1', image, 0)
     plt.clf()
 
     train, = plt.plot(analysis[:,0], analysis[:,3], label='z-prior Train')
@@ -59,6 +67,8 @@ def plot_learning_curves(name, model):
     plt.legend(handles=[train, valid])
 
     plt.savefig(model.hyper['exp_folder']+'/curves2.png')
+    image = misc.imread(model.hyper['exp_folder']+'/curves2.png')
+    writer.add_image('curves2', image, 0)
     plt.clf()
 
 
@@ -105,30 +115,34 @@ def sample(model, n=500):
         y_samples[cluster] = np.array(y_samples[cluster])
 
     with open(model.hyper['exp_folder']+'/samples.pkl','wb') as f:
-
         pickle.dump(y_samples,f)
 
     return y_samples
 
 
 
-def train(model):
+def train(model, writer):
     """"""
     print 'Training ...'
 
     L_elbo_train, L_elbo_modif_train, z_prior_train, z_prior_modif_train = model.computeMetricsTrain()
     L_elbo_valid, L_elbo_modif_valid, z_prior_valid, z_prior_modif_valid = model.computeMetricsValid()
 
-    print '\nBefore learning:'
-    print 'Training L_elbo : {}'.format(L_elbo_train)
-    print 'Validation L_elbo: {}'.format(L_elbo_valid)
-    print 'Training L_elbo modified : {}'.format(L_elbo_modif_train)
-    print 'Validation L_elbo modified: {}'.format(L_elbo_modif_valid)
-    print 'Training z-prior term : {}'.format(z_prior_train)
-    print 'Validation z-prior term: {}'.format(z_prior_valid)
-    print 'Training z-prior modified term: {}'.format(z_prior_modif_train)
-    print 'Validation z-prior modified term: {}'.format(z_prior_modif_valid)
+    print 'before training | train L_elbo %3.6f | train L_elbo mod %3.6f | train z-prior %2.6f | train z-prior mod %2.6f' %(
+        L_elbo_train, L_elbo_modif_train, z_prior_train, z_prior_modif_train)
+    print 'before training | valid L_elbo %3.6f | valid L_elbo mod %3.6f | valid z-prior %2.6f | valid z-prior mod %2.6f' %(
+        L_elbo_valid, L_elbo_modif_valid, z_prior_valid, z_prior_modif_valid)
+    print '-' * 80
 
+    writer.add_scalar('train/L_elbo', L_elbo_train, 0)
+    writer.add_scalar('train/L_elbo_mod', L_elbo_modif_train, 0)
+    writer.add_scalar('train/z_prior', z_prior_train, 0)
+    writer.add_scalar('train/z_prior_mod', z_prior_modif_train, 0)
+
+    writer.add_scalar('valid/L_elbo', L_elbo_valid, 0)
+    writer.add_scalar('valid/L_elbo_mod', L_elbo_modif_valid, 0)
+    writer.add_scalar('valid/z_prior', z_prior_valid, 0)
+    writer.add_scalar('valid/z_prior_mod', z_prior_modif_valid, 0)
     #Analysis table (for plots!)
     analysis = np.array([[0]*5],dtype=config.floatX) # columns: epoch number, self.L_elbo (train), idem (valid), self.z_prior (train), idem (valid)
 
@@ -141,8 +155,8 @@ def train(model):
     # Init patience_count
     patience_count = 0
 
-    i = 0
-    while i < model.hyper['max_epoch'] and patience_count < model.hyper['patience']:
+    i = 1
+    while i < model.hyper['max_epoch'] + 1 and patience_count < model.hyper['patience']:
 
         for batch_idx in np.arange(0,nb_batch):
 
@@ -164,17 +178,21 @@ def train(model):
                 patience_count = 0
             else:
                 patience_count += 1
-
-            print '\nAfter {} completed epochs:'.format(i)
-            print 'Training L_elbo : {}'.format(L_elbo_train)
-            print 'Validation L_elbo: {}'.format(L_elbo_valid)
-            print 'Training L_elbo modified : {}'.format(L_elbo_modif_train)
-            print 'Validation L_elbo modified: {}'.format(L_elbo_modif_valid)
-            print 'Training z-prior term : {}'.format(z_prior_train)
-            print 'Validation z-prior term: {}'.format(z_prior_valid)
-            print 'Training z-prior modified term: {}'.format(z_prior_modif_train)
-            print 'Validation z-prior modified term: {}'.format(z_prior_modif_valid)
+            print 'epoch %3d | train L_elbo %3.6f | train L_elbo mod %3.6f | train z-prior %2.6f | train z-prior mod %2.6f' %(
+                i, L_elbo_train, L_elbo_modif_train, z_prior_train, z_prior_modif_train)
+            print 'epoch %3d | valid L_elbo %3.6f | valid L_elbo mod %3.6f | valid z-prior %2.6f | valid z-prior mod %2.6f' %(
+                i, L_elbo_valid, L_elbo_modif_valid, z_prior_valid, z_prior_modif_valid)
             print '-' * 80
+
+            writer.add_scalar('train/L_elbo', L_elbo_train, i)
+            writer.add_scalar('train/L_elbo_mod', L_elbo_modif_train, i)
+            writer.add_scalar('train/z_prior', z_prior_train, i)
+            writer.add_scalar('train/z_prior_mod', z_prior_modif_train, i)
+
+            writer.add_scalar('valid/L_elbo', L_elbo_valid, i)
+            writer.add_scalar('valid/L_elbo_mod', L_elbo_modif_valid, i)
+            writer.add_scalar('valid/z_prior', z_prior_valid, i)
+            writer.add_scalar('valid/z_prior_mod', z_prior_modif_valid, i)
 
     #Removing the first line of the table (only zeros in it)
     analysis = analysis[1:]
@@ -183,29 +201,43 @@ def train(model):
     with gzip.open(model.hyper['exp_folder']+'/analysis.pkl','wb') as f:
         pickle.dump(analysis, f)
 
-
 if __name__ == '__main__':
-    hyper = getHyperSpiral()
+
+
+    parser = argparse.ArgumentParser(description='Gaussian Mixture VAE')
+    parser.add_argument('--lr', type=float, default=0.001, help='learning rate')
+    parser.add_argument('--batch_size', type=int, default=100, help='batch size')
+    parser.add_argument('--valid_freq', type=int, default=10, help='valid frequency')
+    parser.add_argument('--L_w', type=int, default=1, help='Number of w samples for each examples of a minibatch.')
+    parser.add_argument('--L_x', type=int, default=1, help='Number of x samples for each examples of a minibatch.')
+    parser.add_argument('--max_epoch', type=int, default=100000, help='maximum number of epochs')
+    parser.add_argument('--exp_folder', type=str, default='exp_default', help='experiment logs directory')
+    parser.add_argument('--threshold_z_prior', type=float, default=1.6, help='z-prior term threshold')
+    parser.add_argument('--threshold_w_prior', type=float, default=1., help='w-prior term threshold')
+    args = parser.parse_args()
+    hyper = getHyperSpiral(args)
     print "Hyper Params: "
     print hyper
-
+    writer = SummaryWriter('runs/'+hyper['exp_folder'])
     gm_vae = GMVAE(hyper)
     gm_vae.buildGraph()
 
     train_data, valid_data = loadSpiralData(hyper)
-    plot2D('train data', train_data.get_value(), gm_vae, clustered=False)
+    plot2D('train_data', train_data.get_value(), gm_vae, writer, clustered=False)
 
     gm_vae.compile(train_data, valid_data)
 
     samples = sample(gm_vae)
+
     #with open(hyper['exp_folder']+'/samples.pkl','rb') as f:
     #   samples = pickle.load(f)
-    plot2D('samples_efore',samples, gm_vae)
-    train(gm_vae)
+    plot2D('samples_before',samples, gm_vae,writer)
+    train(gm_vae, writer)
 
 
     gm_vae.setBestParams()
     samples = sample(gm_vae)
-    plot2D('samples_after_training',samples, gm_vae)
+    plot2D('samples_after_training',samples, gm_vae,writer)
 
-    plot_learning_curves('learn_curves', gm_vae)
+    plot_learning_curves('learn_curves', gm_vae, writer)
+    writer.close()
