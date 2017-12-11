@@ -46,6 +46,8 @@ def loadMnistData(hyper):
         data_train = stats.mstats.zscore(data_train, axis = 0)
         data_valid = stats.mstats.zscore(data_valid, axis = 0)
 
+    data_train = data_train.reshape((data_train.shape[0], data_train.shape[1] * data_train.shape[2]))
+    data_valid = data_valid.reshape((data_valid.shape[0], data_valid.shape[1] * data_valid.shape[2]))
     data_train = theano.shared(data_train.astype(config.floatX), borrow=True)
     data_valid = theano.shared(data_valid.astype(config.floatX), borrow=True)
     return data_train, data_valid
