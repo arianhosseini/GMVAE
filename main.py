@@ -50,7 +50,7 @@ def plotMnist(name, data, model, clustered=True):
     for row in _plots:
         for column in row:
             if clustered:
-                column.imshow(data[i % 10][0].reshape((28, 28)), cmap='gray')
+                column.imshow(data[1][i].reshape((28, 28)), cmap='gray')
             else:
                 column.imshow(data[i].reshape((28,28)), cmap='gray')
 
@@ -125,6 +125,7 @@ def sample(model, n=500):
 
             y_samples[cluster] = np.array(y_samples[cluster])
         elif model.hyper['mode'] == 'mnist':
+            # this should output (number of times z gave 'clusters', 1, 28, 28)
             pygx_mu = model.computePygxParams(x_samples_cluster)[:,0,:]
             y_samples[cluster] = pygx_mu
 
@@ -197,6 +198,10 @@ def train(model):
             print 'Training z-prior modified term: {}'.format(z_prior_modif_train)
             print 'Validation z-prior modified term: {}'.format(z_prior_modif_valid)
             print '-' * 80
+        if i % (model.hyper['valid_freq'] * 5) == 0:
+            samples = sample(model)
+            plotMnist('samples_after_training_{}'.format(i),samples, model)
+            print('New plot saved.')
 
     #Removing the first line of the table (only zeros in it)
     analysis = analysis[1:]
@@ -215,8 +220,8 @@ if __name__ == '__main__':
         print('Usage: python main.py {-spiral or -mnist}')
         sys.exit()
 
-    print "Hyper Params: "
-    print hyper
+    #print "Hyper Params: "
+    #print hyper
 
     gm_vae = GMVAE(hyper)
     gm_vae.buildGraph()
