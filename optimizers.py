@@ -11,7 +11,7 @@ def sgd(params, grads, learning_rate):
     updates = OrderedDict()
 
     for param, grad in zip(params, grads):
-        updates[param] = param + learning_rate * grad
+        updates[param] = param - learning_rate * grad
 
     return updates
 

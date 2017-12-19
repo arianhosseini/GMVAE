@@ -17,10 +17,11 @@ from blocks.bricks.conv import Convolutional
 from blocks.roles import PARAMETER, WEIGHT
 from blocks.graph import ComputationGraph
 from blocks.filter import VariableFilter
-from blocks.initialization import Constant
-from theano import printing
+from blocks.initialization import Constant, Uniform
 
 from optimizers import adam, sgd, adagrad
+
+rng = np.random.RandomState(12345)
 
 class GMVAE(object):
 
@@ -44,42 +45,41 @@ class GMVAE(object):
             q_parameters = mlp.apply(self.y)
             mlp.initialize()
         elif self.hyper['mode'] == 'mnist':
-            self.y = T.tensor4('y')
+            self.y = T.matrix('y')
 
-            batch_norm1 = BatchNormalization(input_dim=self.hyper['y_dim'])
             cn1 = Convolutional(filter_size=(6, 6),
-                               num_filters=16,
+                               num_filters=8,
                                num_channels=1,
-                               step=(1, 0),
+                               weights_init=Uniform(mean=0, width=.5),
+                               biases_init=Constant(0),
                                name='conv_1')
-            rect1 = Rectifier().apply(cn1.apply(batch_norm1.apply(self.y)))
+            rect1 = Rectifier().apply(cn1.apply(self.y.reshape([self.y.shape[0], 1, 28, 28])))
 
-            batch_norm2 = BatchNormalization(input_dim=(22, 22))
             cn2 = Convolutional(filter_size=(6, 6),
-                               num_filters=32,
-                               num_channels=1,
-                               step=(1, 0),
+                               num_filters=16,
+                               num_channels=8,
+                               weights_init=Uniform(mean=0, width=.5),
+                               biases_init=Constant(0),
                                name='conv_2')
-            rect2 = Rectifier().apply(cn2.apply(batch_norm2.apply(rect1)))
+            rect2 = Rectifier().apply(cn2.apply(rect1))
 
-            batch_norm3 = BatchNormalization(input_dim=(18, 18))
-            cn3 = Convolutional(filter_size=(6, 6),
-                               num_filters=64,
-                               num_channels=1,
-                               step=(2, 1),
+            cn3 = Convolutional(filter_size=(4, 4),
+                               num_filters=1,
+                               num_channels=16,
+                               weights_init=Uniform(mean=0, width=.5),
+                               biases_init=Constant(0),
                                name='conv_3')
-            rect3 = Rectifier().apply(cn3.apply(batch_norm3.apply(rect2)))
+            rect3 = Rectifier().apply(cn3.apply(rect2))
 
-            batch_norm4 = BatchNormalization(input_dim=(8, 8))
             mlp = MLP(activations=[Rectifier(), None],
-                      dims=[64, 500, 2*self.hyper['x_dim']+2*self.hyper['w_dim']],
+                      dims=[225, 500, 2*self.hyper['x_dim'] + 2*self.hyper['w_dim']],
                       weights_init=self.hyper['q_W_init'],
                       biases_init=Constant(0))
-            q_parameters = mlp.apply(batch_norm4.apply(rect3).flatten(2))
-            
-            cn1.push_initialization_config()
-            cn2.push_initialization_config()
-            cn3.push_initialization_config()
+            q_parameters = mlp.apply(rect3.reshape([rect3.shape[0], 225]))
+
+            cn1.initialize()
+            cn2.initialize()
+            cn3.initialize()
             mlp.initialize()
 
         # self.qxgy_mu.shape == (minibatch size, num of dimension of x)
@@ -132,67 +132,66 @@ class GMVAE(object):
         #---Building p(y|x)---#
         if self.hyper['mode'] == 'spiral':
             pygx_params_mlp = MLP(activations=self.hyper['pygx_activs'],
-                                  dims=self.hyper['pygx_dims'],
-                                  weights_init=self.hyper['pygx_W_init'],
-                                  biases_init=Constant(0))
+                              dims=self.hyper['pygx_dims'],
+                              weights_init=self.hyper['pygx_W_init'],
+                              biases_init=Constant(0))
 
             pygx_params = pygx_params_mlp.apply(self.x.reshape((self.x.shape[0]*self.x.shape[1],self.x.shape[2])))
-            pygx_params = pygx_params.reshape((self.x.shape[0],self.x.shape[1],self.hyper['pygx_dims'][-1]))
+            pygx_params = pygx_params.reshape((self.x.shape[0], self.x.shape[1], 2*self.hyper['y_dim']))
             pygx_params_mlp.initialize()
         elif self.hyper['mode'] == 'mnist':
-            batch_norm5 = BatchNormalization(input_dim=200)
-            mlp = MLP(activations=[Rectifier(), None],
-                      dims=[200, 500, 64],
-                      weights_init=self.hyper['pygx_W_init'],
-                      biases_init=Constant(0))
-            rect5 = Rectifier().apply(mlp.apply(batch_norm5.apply(self.x.reshape((self.x.shape[0]*self.x.shape[1],self.x.shape[2])))))
+            pygx_params_mlp = MLP(activations=[Rectifier(), None],
+                                  dims=[200, 500, 1681],
+                                  weights_init=self.hyper['pygx_W_init'],
+                                  biases_init=Constant(0))
+            rect5 = Rectifier().apply(pygx_params_mlp.apply(self.x.reshape((self.x.shape[0]*self.x.shape[1],self.x.shape[2]))))
 
-            batch_norm6 = BatchNormalization(input_dim=(8, 8))
-            cn6 = Convolutional(filter_size=(4, 4),
-                               num_filters=64,
-                               num_channels=1,
-                               step=(2, 1),
-                               border_mode='full',
-                               name='conv_6')
-            rect6 = Rectifier().apply(cn6.apply(batch_norm6.apply(rect5.reshape([rect5.shape[0], 1, 8, 8]))))
-
-
-            batch_norm7 = BatchNormalization(input_dim=(18, 18))
-            cn7 = Convolutional(filter_size=(6, 6),
-                               num_filters=32,
-                               num_channels=1,
-                               step=(1, 0),
-                               border_mode='full',
-                               name='conv_7')
-            rect7 = Rectifier().apply(cn7.apply(batch_norm7.apply(rect6)))
-
-            batch_norm8 = BatchNormalization(input_dim=(22, 22))
-            cn8 = Convolutional(filter_size=(6, 6),
+            cn7 = Convolutional(filter_size=(4, 4),
                                num_filters=16,
                                num_channels=1,
-                               step=(1, 0),
-                               border_mode='full',
-                               name='conv_8')
-            pygx_params = Rectifier().apply(cn8.apply(batch_norm8.apply(rect7)))
-            self.pygx_mu = Logistic().apply(pygx_params)
-            #self.pygx_mu = printing.Print('mu')(self.pygx_mu)
+                               weights_init=Uniform(mean=0, width=.5),
+                               biases_init=Constant(0),
+                               name='conv_7')
+            rect7 = Rectifier().apply(cn7.apply(rect5.reshape([rect5.shape[0], 1, 41, 41])))
 
-            mlp.initialize()
-            cn6.push_initialization_config()
-            cn7.push_initialization_config()
-            cn8.push_initialization_config()
+            cn8 = Convolutional(filter_size=(6, 6),
+                               num_filters=16,
+                               num_channels=16,
+                               weights_init=Uniform(mean=0, width=.5),
+                               biases_init=Constant(0),
+                               name='conv_8')
+            rect8 = Rectifier().apply(cn8.apply(rect7))
+
+            cn9 = Convolutional(filter_size=(6, 6),
+                               num_filters=1,
+                               num_channels=16,
+                               weights_init=Uniform(mean=0, width=.5),
+                               biases_init=Constant(0),
+                               name='conv_9')
+            pygx_params = Rectifier().apply(cn9.apply(rect8))
+            pygx_params = pygx_params.reshape((self.x.shape[0], self.x.shape[1], self.hyper['y_dim']))
+
+            pygx_params_mlp.initialize()
+            cn7.initialize()
+            cn8.initialize()
+            cn9.initialize()
 
         if self.hyper['mode'] == 'spiral':
             # self.pygx_mu.shape == (minibatch size, L_x , num of dimension of y)
             self.pygx_mu = pygx_params[:,:,:self.hyper['y_dim']]
             # self.pygx_var.shape == (minibatch size, L_x, num of dimension of y)
             self.pygx_var = T.exp(pygx_params[:,:,self.hyper['y_dim']:])
+        elif self.hyper['mode'] == 'mnist':
+            self.pygx_mu = T.nnet.nnet.sigmoid(pygx_params[:,:,:self.hyper['y_dim']])
+            #self.pygx_var = 0.1 * T.ones(pygx_params[:,:,self.hyper['y_dim']:].shape, dtype='float')
+            #self.pygx_var = T.exp(pygx_params[:,:,self.hyper['y_dim']:])
 
         #---Building graph for the density of p(y|x)---#
-        little_num = 10**(-32)
+        #little_num = 10**(-32)
         #inside_exp = -T.sum((self.y.dimshuffle(0,'x',1) - self.pygx_mu)**2/(2*self.pygx_var), axis=2)
         #norm_cst =  (2*np.pi)**(-self.hyper['y_dim']/2.)*T.exp(T.sum(T.log(self.pygx_var), axis=2))**(-1/2.)
         if self.hyper['mode'] == 'spiral':
+            little_num = 10**(-32)
             inside_exp = -T.sum((self.y.dimshuffle(0,'x',1) - self.pygx_mu)**2/(2*self.pygx_var), axis=2)
             norm_cst =  (2*np.pi)**(-self.hyper['y_dim']/2.)*T.exp(T.sum(T.log(self.pygx_var), axis=2))**(-1/2.)
                                                             
@@ -202,8 +201,7 @@ class GMVAE(object):
             # shape == (minibatch size, # of x samples)
             self.log_pygx = T.log(pygx + little_num)
         elif self.hyper['mode'] == 'mnist':
-            self.log_pygx = T.sum(self.y * T.log(self.pygx_mu + little_num) + 
-                (1 - self.y) * T.log(1 - self.pygx_mu + little_num), axis=2)
+            self.log_pygx = T.sum(self.y.dimshuffle(0, 'x', 1) * T.log(self.pygx_mu) + (1 - self.y.dimshuffle(0, 'x', 1)) * T.log(1 - self.pygx_mu), axis=2)
 
         # shape == (minibatch size, # of x samples)
         #pygx = norm_cst*T.exp(inside_exp)

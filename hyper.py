@@ -19,15 +19,14 @@ def getHyper(mode):
     elif mode == 'mnist':
         hyper['w_dim'] = 150
         hyper['x_dim'] = 200
-        hyper['y_dim'] = (28, 28)
+        hyper['y_dim'] = 784
         hyper['num_clust'] = 16 # Number of clusters
         hyper['mode'] = 'mnist'
 
     #---P related networks architecture---#
     #---p(y|x)---#
     hyper['pygx_activs'] = [Rectifier(), Rectifier(), None]
-    if hyper['mode'] == 'spiral':
-        hyper['pygx_dims'] = [hyper['x_dim'], 120, 120, 2*hyper['y_dim']]
+    hyper['pygx_dims'] = [hyper['x_dim'], 120, 120, 2*hyper['y_dim']]
     #width_unif = 2*np.sqrt(6./(hyper['enc_dims'][0] + hyper['enc_dims'][-1]))
     #hyper['pygx_W_init'] = IsotropicGaussian(std=2*np.sqrt(0.01), mean=0)
     if hyper['mode'] == 'spiral':
@@ -40,10 +39,7 @@ def getHyper(mode):
     hyper['pxgzw_dims'] = [None]*hyper['num_clust']
     for j in range(hyper['num_clust']):
         hyper['pxgzw_activs'][j] = [Tanh(), None]
-        if hyper['mode'] == 'spiral':
-            hyper['pxgzw_dims'][j] = [hyper['w_dim'], 120, 2*hyper['x_dim']]
-        elif hyper['mode'] == 'mnist':
-            hyper['pxgzw_dims'][j] = [hyper['w_dim'], 500, 2*hyper['x_dim']]
+        hyper['pxgzw_dims'][j] = [hyper['w_dim'], 120, 2*hyper['x_dim']]
     #hyper['pxgzw_W_init'] = IsotropicGaussian(std=2*np.sqrt(0.01), mean=0)
     if hyper['mode'] == 'spiral':
         hyper['pxgzw_W_init'] = Uniform(mean=0, width=.8)
@@ -54,9 +50,7 @@ def getHyper(mode):
     #---q(x|y) and q(w|y)---#
     # Both distributions' parameters are outputted by the same NN (see appendix of GMVAE article)
     hyper['q_activs'] = [Rectifier(), Rectifier(), None]
-    if hyper['mode'] == 'spiral':
-        hyper['q_dims'] = [hyper['y_dim'], 120, 120, 2*hyper['x_dim']+2*hyper['w_dim']]
-
+    hyper['q_dims'] = [hyper['y_dim'], 120, 120, 2*hyper['x_dim']+2*hyper['w_dim']]
     #width_unif= 2*np.sqrt(6./(hyper['dec_dims'][0] + hyper['dec_dims'][-1]))
     #hyper['q_W_init'] = IsotropicGaussian(std=2*np.sqrt(0.01), mean=0)
     if hyper['mode'] == 'spiral':
@@ -66,7 +60,7 @@ def getHyper(mode):
 
     #---Optimization related---#
     hyper['algo'] = 'adam(self.params, self.grads, self.hyper[\'lr\'])'
-    hyper['lr'] = 0.001
+    hyper['lr'] = 0.01
     hyper['batch_size'] = 100
     hyper['max_epoch'] = 2000
     hyper['patience'] = 50 # Patience of hyper['patience'] (measured in validation checks...)
@@ -77,8 +71,8 @@ def getHyper(mode):
         hyper['exp_folder'] = 'exp_spiral_dev5_normalize'
         hyper['normalize_data'] = True
     elif mode == 'mnist':
-        hyper['L_w'] =  10 # Number of w samples for each examples of a minibatch.
-        hyper['L_x'] = 10 # Number of x samples for each examples of a minibatch.
+        hyper['L_w'] =  1 # Number of w samples for each examples of a minibatch.
+        hyper['L_x'] = 1 # Number of x samples for each examples of a minibatch.
         hyper['exp_folder'] = 'exp_mnist_dev5_normalize'
         hyper['normalize_data'] = False
     
@@ -100,8 +94,8 @@ def getHyper(mode):
 
 def loadHyper(exp_folder):
 
-	with open(exp_folder+'/hyper.pkl','rb') as f:
+    with open(exp_folder+'/hyper.pkl','rb') as f:
 
-		hyper = pickle.load(f)
+        hyper = pickle.load(f)
 
-	return hyper
+    return hyper

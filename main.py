@@ -45,19 +45,29 @@ def plotMnist(name, data, model, clustered=True):
     if clustered:
         data = data.values()
 
-    i = 0
-    f, _plots = plt.subplots(2, 9)
-    for row in _plots:
-        for column in row:
-            if clustered:
-                column.imshow(data[1][i].reshape((28, 28)), cmap='gray')
-            else:
+        i = 0
+        f, _plots = plt.subplots(5, len(data))
+        for row in _plots:
+            for j, column in enumerate(row):
+                if len(data[i]) > j:
+                    column.imshow(data[i][j].reshape((28, 28)), cmap='gray')
+                    column.set_xlim([0,28])
+                    column.set_ylim([0,28])
+                    column.axis('off')
+
+                i = (i + 1) % len(data)
+    else:
+        i = 0
+        f, _plots = plt.subplots(2, 9)
+        for row in _plots:
+            for column in row:
                 column.imshow(data[i].reshape((28,28)), cmap='gray')
 
-            column.set_xlim([0,28])
-            column.set_ylim([0,28])
-            column.axis('off')
-            i += 1
+                column.set_xlim([0,28])
+                column.set_ylim([0,28])
+                column.axis('off')
+                i += 1
+
     plt.savefig(model.hyper['exp_folder']+'/'+name+'.png')
     plt.clf()
 
@@ -113,7 +123,6 @@ def sample(model, n=500):
 
         # shape is (number of times z gave 'cluster',1, x_dim)
         x_samples_cluster = np.array(x_samples[cluster])
-        print x_samples_cluster.shape
         x_samples_cluster = x_samples_cluster.reshape(x_samples_cluster.shape[0],1,x_samples_cluster.shape[1])
 
         if model.hyper['mode'] == 'spiral':
@@ -125,7 +134,6 @@ def sample(model, n=500):
 
             y_samples[cluster] = np.array(y_samples[cluster])
         elif model.hyper['mode'] == 'mnist':
-            # this should output (number of times z gave 'clusters', 1, 28, 28)
             pygx_mu = model.computePygxParams(x_samples_cluster)[:,0,:]
             y_samples[cluster] = pygx_mu
 
@@ -198,10 +206,6 @@ def train(model):
             print 'Training z-prior modified term: {}'.format(z_prior_modif_train)
             print 'Validation z-prior modified term: {}'.format(z_prior_modif_valid)
             print '-' * 80
-        if i % (model.hyper['valid_freq'] * 5) == 0:
-            samples = sample(model)
-            plotMnist('samples_after_training_{}'.format(i),samples, model)
-            print('New plot saved.')
 
     #Removing the first line of the table (only zeros in it)
     analysis = analysis[1:]
@@ -219,9 +223,6 @@ if __name__ == '__main__':
     else:
         print('Usage: python main.py {-spiral or -mnist}')
         sys.exit()
-
-    #print "Hyper Params: "
-    #print hyper
 
     gm_vae = GMVAE(hyper)
     gm_vae.buildGraph()
