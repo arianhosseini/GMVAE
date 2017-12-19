@@ -32,7 +32,7 @@ def getHyper(mode):
     if hyper['mode'] == 'spiral':
         hyper['pygx_W_init'] = Uniform(mean=0, width=.8)
     elif hyper['mode'] == 'mnist':
-        hyper['pygx_W_init'] = Uniform(mean=0, width=.05)
+        hyper['pygx_W_init'] = Uniform(mean=0, width=.2)
 
     #---p(x|z=j,w) for all j---#
     hyper['pxgzw_activs'] = [None]*hyper['num_clust']
@@ -44,7 +44,7 @@ def getHyper(mode):
     if hyper['mode'] == 'spiral':
         hyper['pxgzw_W_init'] = Uniform(mean=0, width=.8)
     elif hyper['mode'] == 'mnist':
-        hyper['pxgzw_W_init'] = Uniform(mean=0, width=.05)
+        hyper['pxgzw_W_init'] = Uniform(mean=0, width=.2)
 
     #---Q related networks architecture---#
     #---q(x|y) and q(w|y)---#
@@ -56,11 +56,11 @@ def getHyper(mode):
     if hyper['mode'] == 'spiral':
         hyper['q_W_init'] = Uniform(mean=0, width=.8)
     elif hyper['mode'] == 'mnist':
-        hyper['q_W_init'] = Uniform(mean=0, width=.05)
+        hyper['q_W_init'] = Uniform(mean=0, width=.2)
 
     #---Optimization related---#
     hyper['algo'] = 'adam(self.params, self.grads, self.hyper[\'lr\'])'
-    hyper['lr'] = 0.01
+    hyper['lr'] = 0.001
     hyper['batch_size'] = 100
     hyper['max_epoch'] = 2000
     hyper['patience'] = 50 # Patience of hyper['patience'] (measured in validation checks...)

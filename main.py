@@ -68,6 +68,7 @@ def plotMnist(name, data, model, clustered=True):
                 column.axis('off')
                 i += 1
 
+    print('Saving '+name+'.png')
     plt.savefig(model.hyper['exp_folder']+'/'+name+'.png')
     plt.clf()
 
@@ -143,12 +144,47 @@ def sample(model, n=500):
     return y_samples
 
 
-def train(model):
+def train(model, train_data, valid_data):
     """"""
     print 'Training ...'
 
-    L_elbo_train, L_elbo_modif_train, z_prior_train, z_prior_modif_train = model.computeMetricsTrain()
-    L_elbo_valid, L_elbo_modif_valid, z_prior_valid, z_prior_modif_valid = model.computeMetricsValid()
+    # Number of batch per epoch
+    nb_batch = model.train_data.shape[0] // model.hyper['batch_size']
+    nb_valid_batch = model.valid_data.shape[0] // model.hyper['batch_size']
+
+    L_elbo_train = 0
+    L_elbo_modif_train = 0
+    z_prior_train = 0
+    z_prior_modif_train = 0
+    batch_count = 0.
+    for batch_idx in np.arange(0,nb_batch):
+        a, b, c, d = model.computeMetricsTrain(train_data[batch_idx * model.hyper['batch_size'] : (batch_idx+1) * model.hyper['batch_size']])
+        L_elbo_train += a
+        L_elbo_modif_train += b
+        z_prior_train += c
+        z_prior_modif_train += d
+        batch_count += 1.
+    L_elbo_train /= batch_count
+    L_elbo_modif_train /= batch_count
+    z_prior_train /= batch_count
+    z_prior_modif_train /= batch_count
+
+    L_elbo_valid = 0
+    L_elbo_modif_valid = 0
+    z_prior_valid = 0
+    z_prior_modif_valid = 0
+    batch_count = 0
+    for batch_idx in np.arange(0,nb_valid_batch):
+        a, b, c, d = model.computeMetricsValid(valid_data[batch_idx * model.hyper['batch_size'] : (batch_idx+1) * model.hyper['batch_size']])
+        L_elbo_valid += a
+        L_elbo_modif_valid += b
+        z_prior_valid += c
+        z_prior_modif_valid += d
+        batch_count += 1.
+    L_elbo_valid /= batch_count
+    L_elbo_modif_valid /= batch_count
+    z_prior_valid /= batch_count
+    z_prior_modif_valid /= batch_count
 
     print '\nBefore learning:'
     print 'Training L_elbo : {}'.format(L_elbo_train)
@@ -163,9 +199,6 @@ def train(model):
     #Analysis table (for plots!)
     analysis = np.array([[0]*5],dtype=config.floatX) # columns: epoch number, self.L_elbo (train), idem (valid), self.z_prior (train), idem (valid)
 
-    # Number of batch per epoch
-    nb_batch = model.train_data.get_value(borrow=True).shape[0] // model.hyper['batch_size']
-
     # Init best_valid_error
     best_L_elbo_valid = -np.inf
 
@@ -177,15 +210,47 @@ def train(model):
 
         for batch_idx in np.arange(0,nb_batch):
 
-            model.trainModel(batch_idx)
+            model.trainModel(train_data[batch_idx * model.hyper['batch_size'] : (batch_idx+1) * model.hyper['batch_size']])
 
         i += 1
 
         if i % model.hyper['valid_freq'] == 0:
             #self.L_elbo, self.L_elbo_modif, T.mean(self.z_prior), T.mean(self.z_prior_modif)
 
-            L_elbo_train, L_elbo_modif_train, z_prior_train, z_prior_modif_train = model.computeMetricsTrain()
-            L_elbo_valid, L_elbo_modif_valid, z_prior_valid, z_prior_modif_valid = model.computeMetricsValid()
+            L_elbo_train = 0
+            L_elbo_modif_train = 0
+            z_prior_train = 0
+            z_prior_modif_train = 0
+            batch_count = 0.
+            for batch_idx in np.arange(0,nb_batch):
+                a, b, c, d = model.computeMetricsTrain(train_data[batch_idx * model.hyper['batch_size'] : (batch_idx+1) * model.hyper['batch_size']])
+                L_elbo_train += a
+                L_elbo_modif_train += b
+                z_prior_train += c
+                z_prior_modif_train += d
+                batch_count += 1.
+            L_elbo_train /= batch_count
+            L_elbo_modif_train /= batch_count
+            z_prior_train /= batch_count
+            z_prior_modif_train /= batch_count
+
+
+            L_elbo_valid = 0
+            L_elbo_modif_valid = 0
+            z_prior_valid = 0
+            z_prior_modif_valid = 0
+            batch_count = 0
+            for batch_idx in np.arange(0,nb_valid_batch):
+                a, b, c, d = model.computeMetricsValid(valid_data[batch_idx * model.hyper['batch_size'] : (batch_idx+1) * model.hyper['batch_size']])
+                L_elbo_valid += a
+                L_elbo_modif_valid += b
+                z_prior_valid += c
+                z_prior_modif_valid += d
+                batch_count += 1.
+            L_elbo_valid /= batch_count
+            L_elbo_modif_valid /= batch_count
+            z_prior_valid /= batch_count
+            z_prior_modif_valid /= batch_count
 
             analysis = np.concatenate([analysis, [[i,L_elbo_train, L_elbo_valid, z_prior_train, z_prior_valid]]], axis=0)
 
@@ -206,6 +271,10 @@ def train(model):
             print 'Training z-prior modified term: {}'.format(z_prior_modif_train)
             print 'Validation z-prior modified term: {}'.format(z_prior_modif_valid)
             print '-' * 80
+
+        if i % 50 == 0:
+            samples = sample(model)
+            plotMnist('samples_epoch_{}'.format(i), samples, gm_vae)
 
     #Removing the first line of the table (only zeros in it)
     analysis = analysis[1:]
@@ -232,7 +301,7 @@ if __name__ == '__main__':
         plot2D('train_data', train_data.get_value(), gm_vae, clustered=False)
     elif hyper['mode'] == 'mnist':
         train_data, valid_data = loadMnistData(hyper)
-        plotMnist('train_data', train_data.get_value(), gm_vae, clustered=False)
+        plotMnist('train_data', train_data, gm_vae, clustered=False)
 
     gm_vae.compile(train_data, valid_data)
 
@@ -245,7 +314,7 @@ if __name__ == '__main__':
     elif hyper['mode'] == 'mnist':
         plotMnist('samples_before',samples, gm_vae)
 
-    train(gm_vae)
+    train(gm_vae, train_data, valid_data)
 
     gm_vae.setBestParams()
     if hyper['mode'] == 'spiral':

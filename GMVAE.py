@@ -48,28 +48,31 @@ class GMVAE(object):
             self.y = T.matrix('y')
 
             cn1 = Convolutional(filter_size=(6, 6),
-                               num_filters=8,
+                               num_filters=32,
                                num_channels=1,
-                               weights_init=Uniform(mean=0, width=.5),
+                               weights_init=Uniform(mean=0, width=.2),
                                biases_init=Constant(0),
                                name='conv_1')
-            rect1 = Rectifier().apply(cn1.apply(self.y.reshape([self.y.shape[0], 1, 28, 28])))
+            #rect1 = Rectifier().apply(cn1.apply(self.y.reshape([self.y.shape[0], 1, 28, 28])))
+            rect1 = cn1.apply(self.y.reshape([self.y.shape[0], 1, 28, 28]))
 
             cn2 = Convolutional(filter_size=(6, 6),
-                               num_filters=16,
-                               num_channels=8,
-                               weights_init=Uniform(mean=0, width=.5),
+                               num_filters=32,
+                               num_channels=32,
+                               weights_init=Uniform(mean=0, width=.2),
                                biases_init=Constant(0),
                                name='conv_2')
-            rect2 = Rectifier().apply(cn2.apply(rect1))
+            #rect2 = Rectifier().apply(cn2.apply(rect1))
+            rect2 = cn2.apply(rect1)
 
             cn3 = Convolutional(filter_size=(4, 4),
                                num_filters=1,
-                               num_channels=16,
-                               weights_init=Uniform(mean=0, width=.5),
+                               num_channels=32,
+                               weights_init=Uniform(mean=0, width=.2),
                                biases_init=Constant(0),
                                name='conv_3')
-            rect3 = Rectifier().apply(cn3.apply(rect2))
+            #rect3 = Rectifier().apply(cn3.apply(rect2))
+            rect3 = cn3.apply(rect2)
 
             mlp = MLP(activations=[Rectifier(), None],
                       dims=[225, 500, 2*self.hyper['x_dim'] + 2*self.hyper['w_dim']],
@@ -144,31 +147,35 @@ class GMVAE(object):
                                   dims=[200, 500, 1681],
                                   weights_init=self.hyper['pygx_W_init'],
                                   biases_init=Constant(0))
-            rect5 = Rectifier().apply(pygx_params_mlp.apply(self.x.reshape((self.x.shape[0]*self.x.shape[1],self.x.shape[2]))))
+            #rect5 = Rectifier().apply(pygx_params_mlp.apply(self.x.reshape((self.x.shape[0]*self.x.shape[1],self.x.shape[2]))))
+            rect5 = pygx_params_mlp.apply(self.x.reshape((self.x.shape[0]*self.x.shape[1],self.x.shape[2])))
 
             cn7 = Convolutional(filter_size=(4, 4),
-                               num_filters=16,
+                               num_filters=32,
                                num_channels=1,
-                               weights_init=Uniform(mean=0, width=.5),
+                               weights_init=Uniform(mean=0, width=.2),
                                biases_init=Constant(0),
                                name='conv_7')
-            rect7 = Rectifier().apply(cn7.apply(rect5.reshape([rect5.shape[0], 1, 41, 41])))
+            #rect7 = Rectifier().apply(cn7.apply(rect5.reshape([rect5.shape[0], 1, 41, 41])))
+            rect7 = cn7.apply(rect5.reshape([rect5.shape[0], 1, 41, 41]))
 
             cn8 = Convolutional(filter_size=(6, 6),
-                               num_filters=16,
-                               num_channels=16,
-                               weights_init=Uniform(mean=0, width=.5),
+                               num_filters=32,
+                               num_channels=32,
+                               weights_init=Uniform(mean=0, width=.2),
                                biases_init=Constant(0),
                                name='conv_8')
-            rect8 = Rectifier().apply(cn8.apply(rect7))
+            #rect8 = Rectifier().apply(cn8.apply(rect7))
+            rect8 = cn8.apply(rect7)
 
             cn9 = Convolutional(filter_size=(6, 6),
                                num_filters=1,
-                               num_channels=16,
-                               weights_init=Uniform(mean=0, width=.5),
+                               num_channels=32,
+                               weights_init=Uniform(mean=0, width=.2),
                                biases_init=Constant(0),
                                name='conv_9')
-            pygx_params = Rectifier().apply(cn9.apply(rect8))
+            #pygx_params = Rectifier().apply(cn9.apply(rect8))
+            pygx_params = cn9.apply(rect8)
             pygx_params = pygx_params.reshape((self.x.shape[0], self.x.shape[1], self.hyper['y_dim']))
 
             pygx_params_mlp.initialize()
@@ -187,11 +194,11 @@ class GMVAE(object):
             #self.pygx_var = T.exp(pygx_params[:,:,self.hyper['y_dim']:])
 
         #---Building graph for the density of p(y|x)---#
-        #little_num = 10**(-32)
+        little_num = 10**(-32)
         #inside_exp = -T.sum((self.y.dimshuffle(0,'x',1) - self.pygx_mu)**2/(2*self.pygx_var), axis=2)
         #norm_cst =  (2*np.pi)**(-self.hyper['y_dim']/2.)*T.exp(T.sum(T.log(self.pygx_var), axis=2))**(-1/2.)
         if self.hyper['mode'] == 'spiral':
-            little_num = 10**(-32)
+            #little_num = 10**(-32)
             inside_exp = -T.sum((self.y.dimshuffle(0,'x',1) - self.pygx_mu)**2/(2*self.pygx_var), axis=2)
             norm_cst =  (2*np.pi)**(-self.hyper['y_dim']/2.)*T.exp(T.sum(T.log(self.pygx_var), axis=2))**(-1/2.)
                                                             
@@ -201,6 +208,7 @@ class GMVAE(object):
             # shape == (minibatch size, # of x samples)
             self.log_pygx = T.log(pygx + little_num)
         elif self.hyper['mode'] == 'mnist':
+            self.pygx_mu = T.clip(self.pygx_mu, little_num, 1.0 - little_num)
             self.log_pygx = T.sum(self.y.dimshuffle(0, 'x', 1) * T.log(self.pygx_mu) + (1 - self.y.dimshuffle(0, 'x', 1)) * T.log(1 - self.pygx_mu), axis=2)
 
         # shape == (minibatch size, # of x samples)
@@ -325,29 +333,28 @@ class GMVAE(object):
         print 'Compiling theano functions...'
 
         # Training functions
-        i = T.iscalar('i')
+        #train_input = T.matrix('train_input')
+        #train_loss_x = T.matrix('train_loss_x')
+        #valid_loss_x = T.matrix('valid_loss_x')
         bs = self.hyper['batch_size']
 
         updates = eval(self.hyper['algo'])
         #TODO fix this 
         self.train_data = train_data
         self.valid_data = valid_data
-        self.trainModel = theano.function(inputs=[i],
+        self.trainModel = theano.function(inputs=[self.y],
                                       outputs=self.grads,
-                                      updates=updates,
-                                      givens={self.y: train_data[i*bs:(i+1)*bs]})#,
+                                      updates=updates)#,
                                       #mode=NanGuardMode(nan_is_error=True, inf_is_error=True, big_is_error=False))
 
         # Metric computers (Have to be called in this order: self.computeMetricsTrain then self.computeMetricsValid)
-        self.computeMetricsTrain = theano.function(inputs=[],
+        self.computeMetricsTrain = theano.function(inputs=[self.y],
                                       outputs=[self.L_elbo, self.L_elbo_modif, self.z_prior, self.z_prior_modif],
-                                      givens={self.y: train_data},
                                       no_default_updates=True)#, #To be sure that the samples are the same when calling self.computeMetricsValid and self.computeMetricsTrain
                                       #mode=NanGuardMode(nan_is_error=True, inf_is_error=True, big_is_error=False))
 
-        self.computeMetricsValid = theano.function(inputs=[],
-                                      outputs=[self.L_elbo, self.L_elbo_modif, self.z_prior, self.z_prior_modif],
-                                      givens={self.y: valid_data})#,
+        self.computeMetricsValid = theano.function(inputs=[self.y],
+                                      outputs=[self.L_elbo, self.L_elbo_modif, self.z_prior, self.z_prior_modif])#,
                                       #mode=NanGuardMode(nan_is_error=True, inf_is_error=True, big_is_error=False))
 
         z_index = T.iscalar('z_index')

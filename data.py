@@ -42,11 +42,11 @@ def loadMnistData(hyper):
         shape = tuple(struct.unpack('>I', f.read(4))[0] for d in range(dims))
         data_valid = np.fromstring(f.read(), dtype=np.uint8).reshape(shape)
 
-    data_train = data_train/255.
-    data_valid = data_valid/255.
+    data_train = (data_train/255.).astype(np.float32)
+    data_valid = (data_valid/255.).astype(np.float32)
 
     data_train = data_train.reshape((data_train.shape[0], data_train.shape[1] * data_train.shape[2]))
     data_valid = data_valid.reshape((data_valid.shape[0], data_valid.shape[1] * data_valid.shape[2]))
-    data_train = theano.shared(data_train.astype(config.floatX), borrow=True)
-    data_valid = theano.shared(data_valid.astype(config.floatX), borrow=True)
+    #data_train = theano.shared(data_train.astype(config.floatX), borrow=True)
+    #data_valid = theano.shared(data_valid.astype(config.floatX), borrow=True)
     return data_train, data_valid
