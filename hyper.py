@@ -32,7 +32,7 @@ def getHyper(mode):
     if hyper['mode'] == 'spiral':
         hyper['pygx_W_init'] = Uniform(mean=0, width=.8)
     elif hyper['mode'] == 'mnist':
-        hyper['pygx_W_init'] = Uniform(mean=0, width=.2)
+        hyper['pygx_W_init'] = Uniform(mean=0, width=.05)
 
     #---p(x|z=j,w) for all j---#
     hyper['pxgzw_activs'] = [None]*hyper['num_clust']
@@ -44,7 +44,7 @@ def getHyper(mode):
     if hyper['mode'] == 'spiral':
         hyper['pxgzw_W_init'] = Uniform(mean=0, width=.8)
     elif hyper['mode'] == 'mnist':
-        hyper['pxgzw_W_init'] = Uniform(mean=0, width=.2)
+        hyper['pxgzw_W_init'] = Uniform(mean=0, width=.05)
 
     #---Q related networks architecture---#
     #---q(x|y) and q(w|y)---#
@@ -56,7 +56,7 @@ def getHyper(mode):
     if hyper['mode'] == 'spiral':
         hyper['q_W_init'] = Uniform(mean=0, width=.8)
     elif hyper['mode'] == 'mnist':
-        hyper['q_W_init'] = Uniform(mean=0, width=.2)
+        hyper['q_W_init'] = Uniform(mean=0, width=.05)
 
     #---Optimization related---#
     hyper['algo'] = 'adam(self.params, self.grads, self.hyper[\'lr\'])'
@@ -80,7 +80,7 @@ def getHyper(mode):
         hyper['treshold_z_prior'] = 1.6 # TODO: What's the value they're using in GMVAE??
     elif hyper['mode'] == 'mnist':
         hyper['treshold_z_prior'] = 0.
-    hyper['treshold_w_prior'] = 1
+    hyper['treshold_w_prior'] = 0
     hyper['w_reduc'] = 1
 
     # Saving hyper in exp_folder

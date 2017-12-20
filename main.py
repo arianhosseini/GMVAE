@@ -50,7 +50,7 @@ def plotMnist(name, data, model, clustered=True):
         for row in _plots:
             for j, column in enumerate(row):
                 if len(data[i]) > j:
-                    column.imshow(data[i][j].reshape((28, 28)), cmap='gray')
+                    column.imshow(data[i][j].reshape((28, 28)), cmap='gray', origin='lower')
                     column.set_xlim([0,28])
                     column.set_ylim([0,28])
                     column.axis('off')

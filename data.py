@@ -45,6 +45,9 @@ def loadMnistData(hyper):
     data_train = (data_train/255.).astype(np.float32)
     data_valid = (data_valid/255.).astype(np.float32)
 
+    data_train = data_train[:6000]
+    data_valid = data_valid[:1000]
+
     data_train = data_train.reshape((data_train.shape[0], data_train.shape[1] * data_train.shape[2]))
     data_valid = data_valid.reshape((data_valid.shape[0], data_valid.shape[1] * data_valid.shape[2]))
     #data_train = theano.shared(data_train.astype(config.floatX), borrow=True)
