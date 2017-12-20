@@ -208,7 +208,7 @@ class GMVAE(object):
             # shape == (minibatch size, # of x samples)
             self.log_pygx = T.log(pygx + little_num)
         elif self.hyper['mode'] == 'mnist':
-        	little_num = 10**(-7)
+            little_num = 10**(-7)
             self.pygx_mu = T.clip(self.pygx_mu, little_num, 1.0 - little_num)
             self.log_pygx = T.sum(self.y.dimshuffle(0, 'x', 1) * T.log(self.pygx_mu) + (1 - self.y.dimshuffle(0, 'x', 1)) * T.log(1 - self.pygx_mu), axis=2)
 
