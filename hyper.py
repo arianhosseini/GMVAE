@@ -78,9 +78,11 @@ def getHyper(mode):
     
     if hyper['mode'] == 'spiral':
         hyper['treshold_z_prior'] = 1.6 # TODO: What's the value they're using in GMVAE??
+        hyper['treshold_w_prior'] = 1
     elif hyper['mode'] == 'mnist':
         hyper['treshold_z_prior'] = 0.
-    hyper['treshold_w_prior'] = 1
+        hyper['treshold_w_prior'] = 0
+    
     hyper['w_reduc'] = 1
 
     # Saving hyper in exp_folder

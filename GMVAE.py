@@ -53,8 +53,8 @@ class GMVAE(object):
                                weights_init=Uniform(mean=0, width=.2),
                                biases_init=Constant(0),
                                name='conv_1')
-            #rect1 = Rectifier().apply(cn1.apply(self.y.reshape([self.y.shape[0], 1, 28, 28])))
-            rect1 = cn1.apply(self.y.reshape([self.y.shape[0], 1, 28, 28]))
+            rect1 = Rectifier().apply(cn1.apply(self.y.reshape([self.y.shape[0], 1, 28, 28])))
+            #rect1 = cn1.apply(self.y.reshape([self.y.shape[0], 1, 28, 28]))
 
             cn2 = Convolutional(filter_size=(6, 6),
                                num_filters=32,
@@ -62,8 +62,8 @@ class GMVAE(object):
                                weights_init=Uniform(mean=0, width=.2),
                                biases_init=Constant(0),
                                name='conv_2')
-            #rect2 = Rectifier().apply(cn2.apply(rect1))
-            rect2 = cn2.apply(rect1)
+            rect2 = Rectifier().apply(cn2.apply(rect1))
+            #rect2 = cn2.apply(rect1)
 
             cn3 = Convolutional(filter_size=(4, 4),
                                num_filters=1,
@@ -71,8 +71,8 @@ class GMVAE(object):
                                weights_init=Uniform(mean=0, width=.2),
                                biases_init=Constant(0),
                                name='conv_3')
-            #rect3 = Rectifier().apply(cn3.apply(rect2))
-            rect3 = cn3.apply(rect2)
+            rect3 = Rectifier().apply(cn3.apply(rect2))
+            #rect3 = cn3.apply(rect2)
 
             mlp = MLP(activations=[Rectifier(), None],
                       dims=[225, 500, 2*self.hyper['x_dim'] + 2*self.hyper['w_dim']],
@@ -156,8 +156,8 @@ class GMVAE(object):
                                weights_init=Uniform(mean=0, width=.2),
                                biases_init=Constant(0),
                                name='conv_7')
-            #rect7 = Rectifier().apply(cn7.apply(rect5.reshape([rect5.shape[0], 1, 41, 41])))
-            rect7 = cn7.apply(rect5.reshape([rect5.shape[0], 1, 41, 41]))
+            rect7 = Rectifier().apply(cn7.apply(rect5.reshape([rect5.shape[0], 1, 41, 41])))
+            #rect7 = cn7.apply(rect5.reshape([rect5.shape[0], 1, 41, 41]))
 
             cn8 = Convolutional(filter_size=(6, 6),
                                num_filters=32,
@@ -165,8 +165,8 @@ class GMVAE(object):
                                weights_init=Uniform(mean=0, width=.2),
                                biases_init=Constant(0),
                                name='conv_8')
-            #rect8 = Rectifier().apply(cn8.apply(rect7))
-            rect8 = cn8.apply(rect7)
+            rect8 = Rectifier().apply(cn8.apply(rect7))
+            #rect8 = cn8.apply(rect7)
 
             cn9 = Convolutional(filter_size=(6, 6),
                                num_filters=1,
@@ -194,11 +194,11 @@ class GMVAE(object):
             #self.pygx_var = T.exp(pygx_params[:,:,self.hyper['y_dim']:])
 
         #---Building graph for the density of p(y|x)---#
-        little_num = 10**(-32)
+        #little_num = 10**(-32)
         #inside_exp = -T.sum((self.y.dimshuffle(0,'x',1) - self.pygx_mu)**2/(2*self.pygx_var), axis=2)
         #norm_cst =  (2*np.pi)**(-self.hyper['y_dim']/2.)*T.exp(T.sum(T.log(self.pygx_var), axis=2))**(-1/2.)
         if self.hyper['mode'] == 'spiral':
-            #little_num = 10**(-32)
+            little_num = 10**(-32)
             inside_exp = -T.sum((self.y.dimshuffle(0,'x',1) - self.pygx_mu)**2/(2*self.pygx_var), axis=2)
             norm_cst =  (2*np.pi)**(-self.hyper['y_dim']/2.)*T.exp(T.sum(T.log(self.pygx_var), axis=2))**(-1/2.)
                                                             
@@ -208,6 +208,7 @@ class GMVAE(object):
             # shape == (minibatch size, # of x samples)
             self.log_pygx = T.log(pygx + little_num)
         elif self.hyper['mode'] == 'mnist':
+        	little_num = 10**(-7)
             self.pygx_mu = T.clip(self.pygx_mu, little_num, 1.0 - little_num)
             self.log_pygx = T.sum(self.y.dimshuffle(0, 'x', 1) * T.log(self.pygx_mu) + (1 - self.y.dimshuffle(0, 'x', 1)) * T.log(1 - self.pygx_mu), axis=2)
 
