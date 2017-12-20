@@ -220,7 +220,7 @@ class GMVAE(object):
             #self.pygx_var = T.exp(pygx_params[:,:,self.hyper['y_dim']:])
 
         #---Building graph for the density of p(y|x)---#
-        #little_num = 10**(-7)
+        #little_num = 10**(-32)
         #inside_exp = -T.sum((self.y.dimshuffle(0,'x',1) - self.pygx_mu)**2/(2*self.pygx_var), axis=2)
         #norm_cst =  (2*np.pi)**(-self.hyper['y_dim']/2.)*T.exp(T.sum(T.log(self.pygx_var), axis=2))**(-1/2.)
         if self.hyper['mode'] == 'spiral':
