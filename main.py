@@ -46,11 +46,11 @@ def plotMnist(name, data, model, clustered=True):
         data = data.values()
 
         i = 0
-        f, _plots = plt.subplots(5, len(data))
-        for row in _plots:
-            for j, column in enumerate(row):
+        f, _plots = plt.subplots(5, len(data),figsize=(20, 12))
+        for j, row in enumerate(_plots):
+            for column in row:
                 if len(data[i]) > j:
-                    column.imshow(data[i][j].reshape((28, 28)), cmap='gray', origin='lower')
+                    column.imshow(data[i][j].reshape((28, 28))[::-1], cmap='gray', origin='lower',  aspect='equal')
                     column.set_xlim([0,28])
                     column.set_ylim([0,28])
                     column.axis('off')
@@ -58,16 +58,16 @@ def plotMnist(name, data, model, clustered=True):
                 i = (i + 1) % len(data)
     else:
         i = 0
-        f, _plots = plt.subplots(2, 9)
+        f, _plots = plt.subplots(2, 9, figsize=(20, 12))
         for row in _plots:
             for column in row:
-                column.imshow(data[i].reshape((28,28)), cmap='gray')
-
+                column.imshow(data[i].reshape((28,28))[::-1], cmap='gray', aspect='equal')
                 column.set_xlim([0,28])
                 column.set_ylim([0,28])
                 column.axis('off')
                 i += 1
 
+    f.tight_layout()
     print('Saving '+name+'.png')
     plt.savefig(model.hyper['exp_folder']+'/'+name+'.png')
     plt.clf()
